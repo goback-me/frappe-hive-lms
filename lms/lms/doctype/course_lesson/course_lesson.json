@@ -133,7 +133,7 @@
   },
   {
    "fieldname": "content",
-   "fieldtype": "Text",
+   "fieldtype": "Long Text",
    "label": "Content"
   },
   {

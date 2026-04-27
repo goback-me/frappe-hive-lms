@@ -996,6 +996,7 @@ def upsert_chapter(
 		chapter = frappe.new_doc("Course Chapter")
 
 	chapter.update(values)
+	chapter.flags.ignore_version = True
 	chapter.save()
 
 	if is_scorm_package and not len(chapter.lessons):

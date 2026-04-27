@@ -63,7 +63,16 @@
 									class="flex items-center flex-1 min-w-0 ms-2"
 									:class="chapter.is_locked ? 'pointer-events-none' : 'cursor-pointer'"
 								>
+									<router-link
+										v-if="!chapter.is_locked && chapter.description && !allowEdit"
+										:to="{ name: 'ChapterDetail', params: { courseName: courseName, chapterNumber: chapter.idx } }"
+										class="text-base text-start font-medium leading-5 truncate text-ink-gray-9 hover:text-ink-blue-3"
+										@click.stop
+									>
+										{{ chapter.title }}
+									</router-link>
 									<div
+										v-else
 										class="text-base text-start font-medium leading-5 truncate"
 										:class="chapter.is_locked ? 'text-ink-gray-5' : 'text-ink-gray-9'"
 									>
@@ -104,12 +113,6 @@
 								</div>
 							</div>
 							<DisclosurePanel v-if="!chapter.is_scorm_package && !chapter.is_locked">
-								<!-- Chapter description / intro content (HTML from rich text editor) -->
-								<div
-									v-if="chapter.description"
-									class="ps-8 pe-4 py-3 prose prose-sm max-w-none text-ink-gray-7 border-l-2 border-surface-gray-3 ms-5 mb-2"
-									v-html="chapter.description"
-								/>
 								<!-- Direct lessons (for chapters with no sub-chapters) -->
 								<template v-if="!chapter.sub_chapters?.length">
 									<Draggable

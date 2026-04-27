@@ -8,46 +8,6 @@
 				<div class="my-3 leading-6 text-ink-gray-7">
 					{{ course.data.short_introduction }}
 				</div>
-				<div class="flex items-center">
-					<Tooltip
-						v-if="parseInt(course.data.rating) > 0"
-						:text="__('Average Rating')"
-						class="flex items-center"
-					>
-						<Star class="size-4 text-transparent fill-yellow-500" />
-						<span class="ms-1 text-ink-gray-7">
-							{{ course.data.rating }}
-						</span>
-					</Tooltip>
-					<span v-if="parseInt(course.data.rating) > 0" class="mx-3"
-						>&middot;</span
-					>
-					<Tooltip
-						v-if="course.data.enrollment_count"
-						:text="__('Enrolled Students')"
-						class="flex items-center"
-					>
-						<Users class="h-4 w-4 text-ink-gray-7" />
-						<span class="ms-1">
-							{{ course.data.enrollment_count_formatted }}
-						</span>
-					</Tooltip>
-					<span v-if="course.data.enrollment_count" class="mx-3">&middot;</span>
-					<div class="flex items-center">
-						<span
-							class="h-6 me-1"
-							:class="{
-								'avatar-group overlap': course.data.instructors.length > 1,
-							}"
-						>
-							<UserAvatar
-								v-for="instructor in course.data.instructors"
-								:user="instructor"
-							/>
-						</span>
-						<CourseInstructors :instructors="course.data.instructors" />
-					</div>
-				</div>
 				<div v-if="course.data.tags" class="flex my-4 w-fit">
 					<Badge
 						theme="gray"
@@ -87,13 +47,10 @@
 	</div>
 </template>
 <script setup lang="ts">
-import { Star, Users } from 'lucide-vue-next'
 import { Badge, Tooltip } from 'frappe-ui'
 import CourseCardOverlay from '@/components/CourseCardOverlay.vue'
 import CourseOutline from '@/components/CourseOutline.vue'
 import CourseReviews from '@/components/CourseReviews.vue'
-import UserAvatar from '@/components/UserAvatar.vue'
-import CourseInstructors from '@/components/CourseInstructors.vue'
 import RelatedCourses from '@/components/RelatedCourses.vue'
 
 const props = defineProps<{

@@ -58,25 +58,7 @@
 					</Tooltip>
 				</div>
 
-				<div v-if="course.enrollments">
-					<Tooltip :text="__('Enrolled Students')">
-						<span class="flex items-center">
-							<Users class="h-4 w-4 stroke-1.5 me-1" />
-							{{ formatAmount(course.enrollments) }}
-						</span>
-					</Tooltip>
-				</div>
-
-				<div v-if="course.rating">
-					<Tooltip :text="__('Average Rating')">
-						<span class="flex items-center">
-							<Star class="h-4 w-4 stroke-1.5 me-1" />
-							{{ course.rating }}
-						</span>
-					</Tooltip>
-				</div>
-
-				<Tooltip v-if="course.featured" :text="__('Featured')">
+<Tooltip v-if="course.featured" :text="__('Featured')">
 					<Award class="size-4 stroke-2 text-ink-amber-3" />
 				</Tooltip>
 			</div>
@@ -102,20 +84,7 @@
 				{{ Math.ceil(course.membership.progress) }}% {{ __('completed') }}
 			</div>
 
-			<div class="flex items-center justify-between mt-auto">
-				<div class="flex avatar-group overlap">
-					<div
-						class="h-6 me-1"
-						:class="{ 'avatar-group overlap': course.instructors.length > 1 }"
-					>
-						<UserAvatar
-							v-for="instructor in course.instructors"
-							:user="instructor"
-						/>
-					</div>
-					<CourseInstructors :instructors="course.instructors" />
-				</div>
-
+			<div class="flex items-center justify-end mt-auto">
 				<div class="flex items-center gap-x-2">
 					<div v-if="course.paid_course" class="font-semibold">
 						{{ course.price }}
@@ -133,14 +102,11 @@
 	</div>
 </template>
 <script setup>
-import { Award, BookOpen, GraduationCap, Star, Users } from 'lucide-vue-next'
+import { Award, BookOpen, GraduationCap } from 'lucide-vue-next'
 import { sessionStore } from '@/stores/session'
 import { Tooltip } from 'frappe-ui'
-import { formatAmount } from '@/utils'
 import { theme } from '@/utils/theme'
 import { computed, watch } from 'vue'
-import CourseInstructors from '@/components/CourseInstructors.vue'
-import UserAvatar from '@/components/UserAvatar.vue'
 import ProgressBar from '@/components/ProgressBar.vue'
 import colors from '@/utils/frappe-ui-colors.json'
 

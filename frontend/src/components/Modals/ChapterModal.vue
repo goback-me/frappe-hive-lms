@@ -8,7 +8,7 @@
 				{
 					label: chapterDetail ? __('Edit') : __('Create'),
 					variant: 'solid',
-					onClick: (close) =>
+					onClick: ({ close }) =>
 						chapterDetail ? editChapter(close) : addChapter(close),
 				},
 			],
