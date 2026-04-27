@@ -1,0 +1,31 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches:
+      - fresh-branch   # change to 'main' if you rename the branch
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to Hostinger VPS
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: frappe
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            cd ~/frappe-bench/apps/lms
+            git pull origin fresh-branch
+
+            cd ~/frappe-bench
+            bench --site ${{ secrets.SITE_NAME }} migrate
+
+            cd ~/frappe-bench/apps/lms/frontend
+            yarn build
+
+            cd ~/frappe-bench
+            bench restart
+
+            echo "✅ Deploy complete"
