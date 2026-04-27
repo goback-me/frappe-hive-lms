@@ -21,6 +21,32 @@ def validate_username_duplicates(doc, method):
 
 def after_insert(doc, method):
 	doc.add_roles("LMS Student")
+	_fire_user_webhook(doc)
+
+
+def _fire_user_webhook(doc):
+	import requests
+
+	webhook_url = frappe.db.get_single_value("LMS Settings", "user_creation_webhook_url")
+	if not webhook_url:
+		return
+
+	try:
+		requests.post(
+			webhook_url,
+			json={
+				"event": "user_created",
+				"user": {
+					"email": doc.email,
+					"full_name": doc.full_name,
+					"first_name": doc.first_name,
+					"last_name": doc.last_name or "",
+				},
+			},
+			timeout=5,
+		)
+	except Exception:
+		pass
 
 
 @frappe.whitelist(allow_guest=True)  # nosemgrep: frappe-semgrep-rules.rules.security.guest-whitelisted-method
