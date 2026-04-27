@@ -15,17 +15,4 @@ jobs:
           host: ${{ secrets.VPS_HOST }}
           username: frappe
           key: ${{ secrets.VPS_SSH_KEY }}
-          script: |
-            cd ~/frappe-bench/apps/lms
-            git pull origin fresh-branch
-
-            cd ~/frappe-bench
-            bench --site ${{ secrets.SITE_NAME }} migrate
-
-            cd ~/frappe-bench/apps/lms/frontend
-            yarn build
-
-            cd ~/frappe-bench
-            bench restart
-
-            echo "✅ Deploy complete at http://course.trademarkstrategy.co:8110"
+          script: echo "deploy"
