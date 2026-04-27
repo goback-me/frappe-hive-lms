@@ -1014,13 +1014,13 @@ def get_course_outline(course: str, progress: bool = False) -> list:
 	chapter_restrictions = course_has_chapter_restrictions(course)
 	effective_membership = membership and not chapter_restrictions
 
-	outline = []
+	all_chapters = []
 	chapters = frappe.get_all("Chapter Reference", {"parent": course}, ["chapter", "idx"], order_by="idx")
 	for chapter in chapters:
 		chapter_details = frappe.db.get_value(
 			"Course Chapter",
 			chapter.chapter,
-			["name", "title", "is_scorm_package", "launch_file", "scorm_package"],
+			["name", "title", "is_scorm_package", "launch_file", "scorm_package", "parent_chapter", "description"],
 			as_dict=True,
 		)
 		chapter_details["idx"] = chapter.idx
@@ -1041,8 +1041,18 @@ def get_course_outline(course: str, progress: bool = False) -> list:
 		)
 		chapter_details["is_locked"] = chapter_locked
 		chapter_details["calendly_link"] = calendly_link if chapter_locked else None
+		chapter_details["sub_chapters"] = []
 
-		outline.append(chapter_details)
+		all_chapters.append(chapter_details)
+
+	# Build nested tree: chapters with parent_chapter are nested under their parent
+	chapter_map = {c.name: c for c in all_chapters}
+	outline = []
+	for chapter in all_chapters:
+		if chapter.parent_chapter and chapter.parent_chapter in chapter_map:
+			chapter_map[chapter.parent_chapter]["sub_chapters"].append(chapter)
+		else:
+			outline.append(chapter)
 	return outline
 
 

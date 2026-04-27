@@ -95,6 +95,13 @@
 								/>
 							</div>
 							<DisclosurePanel v-if="!chapter.is_scorm_package && !chapter.is_locked">
+								<!-- Chapter description / intro content -->
+								<div
+									v-if="chapter.description"
+									class="ps-8 pe-4 py-2 text-sm text-ink-gray-7 whitespace-pre-wrap leading-relaxed border-l-2 border-surface-gray-3 ms-5 mb-1"
+								>
+									{{ chapter.description }}
+								</div>
 								<!-- Direct lessons (for chapters with no sub-chapters) -->
 								<template v-if="!chapter.sub_chapters?.length">
 									<Draggable

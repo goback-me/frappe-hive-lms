@@ -22,6 +22,13 @@
 					:required="true"
 					autocomplete="off"
 				/>
+				<FormControl
+					type="textarea"
+					label="Description (optional)"
+					:placeholder="__('Add an intro or overview for this chapter...')"
+					v-model="chapter.description"
+					:rows="4"
+				/>
 				<Switch
 					size="sm"
 					:label="__('SCORM Package')"
@@ -110,6 +117,7 @@ const props = defineProps({
 
 const chapter = reactive({
 	title: '',
+	description: '',
 	is_scorm_package: 0,
 	scorm_package: null,
 })
@@ -119,6 +127,7 @@ const chapterResource = createResource({
 	makeParams(values) {
 		return {
 			title: chapter.title,
+			description: chapter.description || '',
 			course: props.course,
 			is_scorm_package: chapter.is_scorm_package,
 			scorm_package: chapter.scorm_package,
@@ -188,6 +197,7 @@ const validateChapter = () => {
 
 const cleanChapter = () => {
 	chapter.title = ''
+	chapter.description = ''
 	chapter.is_scorm_package = 0
 	chapter.scorm_package = null
 }
@@ -217,6 +227,7 @@ watch(
 	() => props.chapterDetail,
 	(newChapter) => {
 		chapter.title = newChapter?.title
+		chapter.description = newChapter?.description || ''
 		chapter.is_scorm_package = newChapter?.is_scorm_package
 		chapter.scorm_package = newChapter?.scorm_package
 	}

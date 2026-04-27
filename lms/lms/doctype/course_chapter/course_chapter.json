@@ -12,6 +12,8 @@
   "column_break_3",
   "course",
   "course_title",
+  "parent_chapter",
+  "description",
   "scorm_section",
   "is_scorm_package",
   "scorm_package",
@@ -30,6 +32,19 @@
    "label": "Course",
    "options": "LMS Course",
    "reqd": 1
+  },
+  {
+   "fieldname": "parent_chapter",
+   "fieldtype": "Link",
+   "label": "Parent Chapter",
+   "options": "Course Chapter",
+   "description": "Set this to nest this chapter under another chapter"
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Long Text",
+   "label": "Description",
+   "description": "Optional intro text shown when this chapter is expanded"
   },
   {
    "fieldname": "title",
