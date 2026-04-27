@@ -3,7 +3,7 @@
 		v-model="show"
 		:options="{
 			title: chapterDetail ? __('Edit Chapter') : (parentChapter ? __('Add Sub-section') : __('Add Chapter')),
-			size: 'lg',
+			size: 'xl',
 			actions: [
 				{
 					label: chapterDetail ? __('Edit') : __('Create'),
@@ -22,13 +22,18 @@
 					:required="true"
 					autocomplete="off"
 				/>
-				<FormControl
-					type="textarea"
-					label="Description (optional)"
-					:placeholder="__('Add an intro or overview for this chapter...')"
-					v-model="chapter.description"
-					:rows="4"
-				/>
+				<div>
+					<div class="mb-1.5 text-sm text-ink-gray-5">
+						{{ __('Description (optional)') }}
+					</div>
+					<TextEditor
+						:key="editorKey"
+						:content="chapter.description"
+						:fixedMenu="true"
+						@change="(val) => (chapter.description = val)"
+						editorClass="prose prose-sm max-w-none py-2 px-2 min-h-[150px] border border-outline-gray-2 hover:border-outline-gray-3 rounded-b-md"
+					/>
+				</div>
 				<Switch
 					size="sm"
 					:label="__('SCORM Package')"
@@ -88,9 +93,10 @@ import {
 	FileUploader,
 	FormControl,
 	Switch,
+	TextEditor,
 	toast,
 } from 'frappe-ui'
-import { reactive, watch, inject } from 'vue'
+import { reactive, ref, watch, inject } from 'vue'
 import { getFileSize } from '@/utils/'
 import { FileText, X } from 'lucide-vue-next'
 import { useOnboarding, useTelemetry } from 'frappe-ui/frappe'
@@ -100,6 +106,7 @@ const outline = defineModel('outline')
 const user = inject('$user')
 const { capture } = useTelemetry()
 const { updateOnboardingStep } = useOnboarding('learning')
+const editorKey = ref(0)
 
 const props = defineProps({
 	course: {
@@ -200,6 +207,7 @@ const cleanChapter = () => {
 	chapter.description = ''
 	chapter.is_scorm_package = 0
 	chapter.scorm_package = null
+	editorKey.value++
 }
 
 const editChapter = (close) => {
@@ -226,10 +234,11 @@ const editChapter = (close) => {
 watch(
 	() => props.chapterDetail,
 	(newChapter) => {
-		chapter.title = newChapter?.title
+		chapter.title = newChapter?.title || ''
 		chapter.description = newChapter?.description || ''
 		chapter.is_scorm_package = newChapter?.is_scorm_package
 		chapter.scorm_package = newChapter?.scorm_package
+		editorKey.value++
 	}
 )
 

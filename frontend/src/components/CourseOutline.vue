@@ -40,40 +40,39 @@
 							:key="chapter.name"
 							:defaultOpen="openChapterDetail(chapter.idx)"
 						>
-							<!-- Wrapper row: DisclosureButton as div avoids nested <button> HTML issue -->
-							<!-- Clicking anywhere on a locked row opens the lock modal -->
+							<!-- Wrapper row: page icon left, chevron right -->
 							<div
-								class="flex items-center w-full p-2 group"
+								class="flex items-center w-full px-2 py-2 group rounded-md"
 								:class="{ 'cursor-pointer': chapter.is_locked }"
 								@click="chapter.is_locked ? showLockedModal(chapter) : null"
 							>
+								<!-- Left: lock or page icon -->
+								<LockKeyhole
+									v-if="chapter.is_locked"
+									class="h-4 w-4 text-ink-gray-5 stroke-1.5 shrink-0"
+								/>
+								<BookOpen
+									v-else
+									class="h-4 w-4 shrink-0"
+									:class="chapter.sub_chapters?.length ? 'text-ink-blue-3' : 'text-ink-gray-6'"
+								/>
+
+								<!-- Title -->
 								<DisclosureButton
 									as="div"
-									class="flex items-center flex-1 min-w-0"
+									class="flex items-center flex-1 min-w-0 ms-2"
 									:class="chapter.is_locked ? 'pointer-events-none' : 'cursor-pointer'"
 								>
-									<ChevronRight
-										:class="{
-											'rotate-90': open,
-											'rtl:rotate-180': !open,
-											hidden: chapter.is_scorm_package || chapter.is_locked,
-											open: index == 1,
-										}"
-										class="h-4 w-4 text-ink-gray-9 stroke-1 transform duration-200 shrink-0"
-									/>
-									<LockKeyhole
-										v-if="chapter.is_locked"
-										class="h-4 w-4 text-ink-gray-5 stroke-1.5 shrink-0"
-									/>
 									<div
-										class="text-base text-start font-medium leading-5 ms-2 truncate"
+										class="text-base text-start font-medium leading-5 truncate"
 										:class="chapter.is_locked ? 'text-ink-gray-5' : 'text-ink-gray-9'"
-										@click="redirectToChapter(chapter)"
 									>
 										{{ chapter.title }}
 									</div>
 								</DisclosureButton>
-								<div class="flex ms-auto gap-x-4 items-center shrink-0">
+
+								<!-- Right: edit/delete + chevron -->
+								<div class="flex ms-auto gap-x-3 items-center shrink-0">
 									<Tooltip :text="__('Edit Chapter')" placement="bottom">
 										<FilePenLine
 											v-if="allowEdit"
@@ -88,20 +87,29 @@
 											class="h-4 w-4 text-ink-red-3 invisible group-hover:visible"
 										/>
 									</Tooltip>
+									<Check
+										v-if="chapter.is_scorm_package && isScormChapterComplete(chapter)"
+										class="h-4 w-4 text-green-700"
+									/>
+									<DisclosureButton
+										v-if="!chapter.is_locked && !chapter.is_scorm_package"
+										as="div"
+										class="cursor-pointer"
+									>
+										<ChevronRight
+											:class="{ 'rotate-90': open, 'rtl:rotate-180': !open }"
+											class="h-4 w-4 text-ink-gray-5 stroke-1 transform duration-200"
+										/>
+									</DisclosureButton>
 								</div>
-								<Check
-									v-if="chapter.is_scorm_package && isScormChapterComplete(chapter)"
-									class="h-4 w-4 text-green-700 shrink-0"
-								/>
 							</div>
 							<DisclosurePanel v-if="!chapter.is_scorm_package && !chapter.is_locked">
-								<!-- Chapter description / intro content -->
+								<!-- Chapter description / intro content (HTML from rich text editor) -->
 								<div
 									v-if="chapter.description"
-									class="ps-8 pe-4 py-2 text-sm text-ink-gray-7 whitespace-pre-wrap leading-relaxed border-l-2 border-surface-gray-3 ms-5 mb-1"
-								>
-									{{ chapter.description }}
-								</div>
+									class="ps-8 pe-4 py-3 prose prose-sm max-w-none text-ink-gray-7 border-l-2 border-surface-gray-3 ms-5 mb-2"
+									v-html="chapter.description"
+								/>
 								<!-- Direct lessons (for chapters with no sub-chapters) -->
 								<template v-if="!chapter.sub_chapters?.length">
 									<Draggable
@@ -324,6 +332,7 @@ import { getCurrentInstance, inject, ref, watch } from 'vue'
 import Draggable from 'vuedraggable'
 import { Disclosure, DisclosureButton, DisclosurePanel } from '@headlessui/vue'
 import {
+	BookOpen,
 	Check,
 	ChevronRight,
 	FileText,
