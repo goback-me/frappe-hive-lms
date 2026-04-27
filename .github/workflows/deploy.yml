@@ -28,4 +28,4 @@ jobs:
             cd ~/frappe-bench
             bench restart
 
-            echo "✅ Deploy complete"
+            echo "✅ Deploy complete at http://course.trademarkstrategy.co:8110"
