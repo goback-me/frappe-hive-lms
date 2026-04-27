@@ -2388,23 +2388,41 @@ def import_course_from_zip(zip_file_path: str):
 
 
 @frappe.whitelist()
-def grant_chapter_access(member: str, course: str, chapter: str):
-	"""Grant a user access to a specific chapter. Only moderators and course instructors can call this."""
+def grant_chapter_access(member: str, course: str, chapters):
+	"""Grant a user access to one or more chapters. chapters may be a list or a single chapter name."""
 	if not can_modify_course(course):
 		frappe.throw(_("You do not have permission to grant chapter access."), frappe.PermissionError)
 
-	if has_chapter_access(chapter, member):
-		frappe.throw(_("{0} already has access to this chapter.").format(member))
+	if isinstance(chapters, str):
+		import json
+		try:
+			chapters = json.loads(chapters)
+		except (ValueError, TypeError):
+			chapters = [chapters]
 
-	doc = frappe.get_doc(
-		{
-			"doctype": "LMS Chapter Enrollment",
-			"member": member,
-			"course": course,
-			"chapter": chapter,
-		}
+	enrollment_name = frappe.db.get_value(
+		"LMS Chapter Enrollment",
+		{"member": member, "course": course},
+		"name",
 	)
-	doc.insert(ignore_permissions=True)
+
+	if enrollment_name:
+		doc = frappe.get_doc("LMS Chapter Enrollment", enrollment_name)
+	else:
+		doc = frappe.new_doc("LMS Chapter Enrollment")
+		doc.member = member
+		doc.course = course
+
+	existing = {row.chapter for row in doc.chapters}
+	for chapter in chapters:
+		if chapter not in existing:
+			doc.append("chapters", {"chapter": chapter})
+
+	if doc.is_new():
+		doc.insert(ignore_permissions=True)
+	else:
+		doc.save(ignore_permissions=True)
+
 	return doc.name
 
 
@@ -2414,15 +2432,21 @@ def revoke_chapter_access(member: str, course: str, chapter: str):
 	if not can_modify_course(course):
 		frappe.throw(_("You do not have permission to revoke chapter access."), frappe.PermissionError)
 
-	enrollment = frappe.db.get_value(
+	enrollment_name = frappe.db.get_value(
 		"LMS Chapter Enrollment",
-		{"member": member, "course": course, "chapter": chapter},
+		{"member": member, "course": course},
 		"name",
 	)
-	if not enrollment:
+	if not enrollment_name:
 		frappe.throw(_("{0} does not have explicit chapter access to revoke.").format(member))
 
-	frappe.delete_doc("LMS Chapter Enrollment", enrollment, ignore_permissions=True)
+	doc = frappe.get_doc("LMS Chapter Enrollment", enrollment_name)
+	doc.chapters = [row for row in doc.chapters if row.chapter != chapter]
+
+	if doc.chapters:
+		doc.save(ignore_permissions=True)
+	else:
+		frappe.delete_doc("LMS Chapter Enrollment", enrollment_name, ignore_permissions=True)
 
 
 @frappe.whitelist()
@@ -2431,9 +2455,14 @@ def get_chapter_enrollments(course: str, chapter: str):
 	if not can_modify_course(course):
 		frappe.throw(_("You do not have permission to view chapter enrollments."), frappe.PermissionError)
 
-	return frappe.get_all(
-		"LMS Chapter Enrollment",
-		filters={"course": course, "chapter": chapter},
-		fields=["member", "member_name", "granted_by", "granted_on"],
-		order_by="granted_on desc",
+	return frappe.db.sql(
+		"""
+		SELECT cec.member, cec.member_name, cec.granted_by, cec.granted_on
+		FROM `tabLMS Chapter Enrollment` cec
+		JOIN `tabLMS Chapter Enrollment Chapter` cecc ON cecc.parent = cec.name
+		WHERE cec.course = %s AND cecc.chapter = %s
+		ORDER BY cec.granted_on DESC
+		""",
+		(course, chapter),
+		as_dict=True,
 	)

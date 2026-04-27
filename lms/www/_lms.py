@@ -112,6 +112,9 @@ def get_meta_from_document(app_path):
 			as_dict=True,
 		)
 
+		if not course:
+			return {}
+
 		if course.description:
 			soup = BeautifulSoup(course.description, "html.parser")
 			course.description = escape_html(soup.get_text())

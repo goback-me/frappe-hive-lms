@@ -66,57 +66,19 @@
 			</div>
 		</header>
 		<div class="grid md:grid-cols-[70%,30%] h-[94vh]">
-			<div v-if="lesson.data.no_preview" class="border-e">
-				<div class="shadow rounded-md w-3/4 mt-10 mx-auto text-center p-4">
-					<div class="flex items-center justify-center mt-4 gap-x-2">
-						<LockKeyholeIcon class="size-4 stroke-2 text-ink-gray-5" />
-						<div class="text-lg font-semibold text-ink-gray-7">
-							{{ __('This chapter is locked') }}
-						</div>
+			<div v-if="lesson.data.no_preview" class="border-e flex items-center justify-center">
+				<div class="flex flex-col items-center text-center gap-4 p-10 max-w-sm">
+					<div class="flex items-center justify-center w-20 h-20 rounded-full bg-surface-gray-2">
+						<LockKeyholeIcon class="size-9 stroke-1.5 text-ink-gray-5" />
 					</div>
-					<div class="mt-1 mb-4 text-ink-gray-7">
-						{{
-							lesson.data.calendly_link
-								? __('This chapter requires special access. Book a call with us to unlock it.')
-								: __('This lesson is not available for preview. Please enroll in the course to access it.')
-						}}
+					<div>
+						<p class="text-xl font-semibold text-ink-gray-9 mb-1">
+							{{ __('This section is locked') }}
+						</p>
+						<p class="text-sm text-ink-gray-5 leading-relaxed">
+							{{ __('Get approval on the previous sections to unlock') }}
+						</p>
 					</div>
-					<a
-						v-if="lesson.data.calendly_link"
-						:href="lesson.data.calendly_link"
-						target="_blank"
-						rel="noopener noreferrer"
-					>
-						<Button variant="solid">
-							<template #prefix>
-								<CalendarDays class="w-4 h-4 stroke-1.5" />
-							</template>
-							{{ __('Book a Call to Get Access') }}
-						</Button>
-					</a>
-					<template v-else>
-						<Button
-							v-if="user.data && !lesson.data.disable_self_learning"
-							@click="enrollStudent()"
-							variant="solid"
-						>
-							{{ __('Start Learning') }}
-						</Button>
-						<Badge
-							theme="blue"
-							size="lg"
-							v-else-if="lesson.data.disable_self_learning"
-							class="mt-2"
-						>
-							{{ __('Contact the Administrator to enroll for this course.') }}
-						</Badge>
-						<Button v-else @click="redirectToLogin()">
-							<template #prefix>
-								<LogIn class="w-4 h-4 stroke-1" />
-							</template>
-							{{ __('Login') }}
-						</Button>
-					</template>
 				</div>
 			</div>
 			<div

@@ -939,6 +939,16 @@ def get_course_details(course: str):
 
 	course_details.instructors = get_instructors("LMS Course", course_details.name)
 	course_details.membership = membership
+	# True when course uses chapter-level access control and this user hasn't been approved yet
+	member = frappe.session.user
+	course_has_chapter_control = bool(
+		frappe.db.exists("LMS Chapter Enrollment", {"course": course})
+	)
+	user_approved = bool(
+		member != "Guest"
+		and frappe.db.exists("LMS Chapter Enrollment", {"course": course, "member": member})
+	)
+	course_details.requires_approval = course_has_chapter_control and not user_approved and not membership
 	# course_details.is_instructor = is_instructor(course_details.name)
 	if course_details.paid_course or course_details.paid_certificate:
 		"""course_details.course_price, course_details.currency = check_multicurrency(
@@ -1000,6 +1010,9 @@ def get_course_outline(course: str, progress: bool = False) -> list:
 	membership = get_membership(course)
 	is_editor = can_modify_course(course)
 	calendly_link = frappe.db.get_value("LMS Course", course, "calendly_link")
+	# When a user has chapter-level restrictions, full enrollment does not unlock all chapters
+	chapter_restrictions = course_has_chapter_restrictions(course)
+	effective_membership = membership and not chapter_restrictions
 
 	outline = []
 	chapters = frappe.get_all("Chapter Reference", {"parent": course}, ["chapter", "idx"], order_by="idx")
@@ -1021,9 +1034,8 @@ def get_course_outline(course: str, progress: bool = False) -> list:
 				as_dict=1,
 			)
 
-		# Mark chapter as locked if user has no full membership and no explicit chapter access
 		chapter_locked = (
-			not membership
+			not effective_membership
 			and not is_editor
 			and not has_chapter_access(chapter_details.name)
 		)
@@ -1067,7 +1079,9 @@ def get_lesson(course: str, chapter: int, lesson: int) -> dict:
 	)
 
 	chapter_access = has_chapter_access(chapter_name)
-	if not lesson_details.include_in_preview and not membership and not can_modify_course(course) and not chapter_access:
+	chapter_restrictions = course_has_chapter_restrictions(course)
+	effective_membership = membership and not chapter_restrictions
+	if not lesson_details.include_in_preview and not effective_membership and not can_modify_course(course) and not chapter_access:
 		return {
 			"no_preview": 1,
 			"title": lesson_details.title,
@@ -2365,12 +2379,29 @@ def has_chapter_access(chapter: str, member: str = None) -> bool:
 		member = frappe.session.user
 	if member == "Guest":
 		return False
+	enrollment_names = frappe.get_all(
+		"LMS Chapter Enrollment",
+		filters={"member": member},
+		pluck="name",
+	)
+	if not enrollment_names:
+		return False
 	return bool(
 		frappe.db.exists(
-			"LMS Chapter Enrollment",
-			{"member": member, "chapter": chapter},
+			"LMS Chapter Enrollment Chapter",
+			{"chapter": chapter, "parent": ("in", enrollment_names)},
 		)
 	)
+
+
+def course_has_chapter_restrictions(course: str, member: str = None) -> bool:
+	"""Returns True if the member has chapter-level restrictions for this course.
+	When True, full course enrollment does NOT override per-chapter locks."""
+	if not member:
+		member = frappe.session.user
+	if member == "Guest":
+		return False
+	return bool(frappe.db.exists("LMS Chapter Enrollment", {"member": member, "course": course}))
 
 
 def can_modify_batch(batch: str) -> bool:

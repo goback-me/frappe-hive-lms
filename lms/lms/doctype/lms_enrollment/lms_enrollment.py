@@ -11,7 +11,32 @@ class LMSEnrollment(Document):
 	def before_insert(self):
 		self.validate_duplicate_enrollment()
 		self.validate_course_enrollment_eligibility()
+		self.validate_chapter_enrollment_required()
 		self.validate_owner()
+
+	def validate_chapter_enrollment_required(self):
+		"""Block self-enrollment when the course uses chapter-level access control."""
+		if is_admin():
+			return
+		if frappe.session.user != self.member:
+			return  # An admin is enrolling someone else — allow it
+
+		course_has_chapter_control = frappe.db.exists(
+			"LMS Chapter Enrollment", {"course": self.course}
+		)
+		if not course_has_chapter_control:
+			return
+
+		user_has_chapter_enrollment = frappe.db.exists(
+			"LMS Chapter Enrollment", {"course": self.course, "member": self.member}
+		)
+		if not user_has_chapter_enrollment:
+			frappe.throw(
+				_(
+					"Enrollment for this course requires administrator approval. "
+					"Please contact the Administrator to get access."
+				)
+			)
 
 	def validate_owner(self):
 		"""Makes the member as the owner of the document so that users can update their progress"""

@@ -40,69 +40,60 @@
 							:key="chapter.name"
 							:defaultOpen="openChapterDetail(chapter.idx)"
 						>
-							<DisclosureButton
-								ref=""
+							<!-- Wrapper row: DisclosureButton as div avoids nested <button> HTML issue -->
+							<!-- Clicking anywhere on a locked row opens the lock modal -->
+							<div
 								class="flex items-center w-full p-2 group"
+								:class="{ 'cursor-pointer': chapter.is_locked }"
+								@click="chapter.is_locked ? showLockedModal(chapter) : null"
 							>
-								<ChevronRight
-									:class="{
-										'rotate-90': open,
-										'rtl:rotate-180': !open,
-										hidden: chapter.is_scorm_package || chapter.is_locked,
-										open: index == 1,
-									}"
-									class="h-4 w-4 text-ink-gray-9 stroke-1 transform duration-200"
-								/>
-								<LockKeyhole
-									v-if="chapter.is_locked"
-									class="h-4 w-4 text-ink-gray-5 stroke-1.5"
-								/>
-								<div
-									class="text-base text-start font-medium leading-5 ms-2"
-									:class="chapter.is_locked ? 'text-ink-gray-5' : 'text-ink-gray-9'"
-									@click="redirectToChapter(chapter)"
+								<DisclosureButton
+									as="div"
+									class="flex items-center flex-1 min-w-0"
+									:class="chapter.is_locked ? 'pointer-events-none' : 'cursor-pointer'"
 								>
-									{{ chapter.title }}
-								</div>
-								<div class="flex ms-auto gap-x-4 items-center">
-									<a
-										v-if="chapter.is_locked && chapter.calendly_link"
-										:href="chapter.calendly_link"
-										target="_blank"
-										rel="noopener noreferrer"
-										@click.stop
+									<ChevronRight
+										:class="{
+											'rotate-90': open,
+											'rtl:rotate-180': !open,
+											hidden: chapter.is_scorm_package || chapter.is_locked,
+											open: index == 1,
+										}"
+										class="h-4 w-4 text-ink-gray-9 stroke-1 transform duration-200 shrink-0"
+									/>
+									<LockKeyhole
+										v-if="chapter.is_locked"
+										class="h-4 w-4 text-ink-gray-5 stroke-1.5 shrink-0"
+									/>
+									<div
+										class="text-base text-start font-medium leading-5 ms-2 truncate"
+										:class="chapter.is_locked ? 'text-ink-gray-5' : 'text-ink-gray-9'"
+										@click="redirectToChapter(chapter)"
 									>
-										<Tooltip :text="__('Book a call to unlock this chapter')" placement="bottom">
-											<Button size="sm" variant="subtle">
-												<template #prefix>
-													<CalendarDays class="h-3.5 w-3.5 stroke-1.5" />
-												</template>
-												{{ __('Book a Call') }}
-											</Button>
-										</Tooltip>
-									</a>
+										{{ chapter.title }}
+									</div>
+								</DisclosureButton>
+								<div class="flex ms-auto gap-x-4 items-center shrink-0">
 									<Tooltip :text="__('Edit Chapter')" placement="bottom">
 										<FilePenLine
 											v-if="allowEdit"
-											@click.prevent="openChapterModal(chapter)"
+											@click.stop="openChapterModal(chapter)"
 											class="h-4 w-4 text-ink-gray-9 invisible group-hover:visible"
 										/>
 									</Tooltip>
 									<Tooltip :text="__('Delete Chapter')" placement="bottom">
 										<Trash2
 											v-if="allowEdit"
-											@click.prevent="trashChapter(chapter.name)"
+											@click.stop="trashChapter(chapter.name)"
 											class="h-4 w-4 text-ink-red-3 invisible group-hover:visible"
 										/>
 									</Tooltip>
 								</div>
 								<Check
-									v-if="
-										chapter.is_scorm_package && isScormChapterComplete(chapter)
-									"
-									class="h-4 w-4 text-green-700"
+									v-if="chapter.is_scorm_package && isScormChapterComplete(chapter)"
+									class="h-4 w-4 text-green-700 shrink-0"
 								/>
-							</DisclosureButton>
+							</div>
 							<DisclosurePanel v-if="!chapter.is_scorm_package && !chapter.is_locked">
 								<Draggable
 									v-if="!chapter.is_scorm_package"
@@ -199,6 +190,38 @@
 		:course="courseName"
 		:chapterDetail="getCurrentChapter()"
 	/>
+
+	<!-- Locked Chapter Modal -->
+	<Teleport to="body">
+		<Transition name="locked-modal">
+			<div
+				v-if="lockedModalVisible"
+				class="fixed inset-0 z-50 flex items-center justify-center p-4"
+				@click.self="lockedModalVisible = false"
+			>
+				<div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="lockedModalVisible = false" />
+				<div class="locked-modal-card relative bg-surface-white rounded-2xl shadow-2xl p-10 max-w-sm w-full flex flex-col items-center text-center gap-4">
+					<button
+						class="absolute top-4 right-4 text-ink-gray-4 hover:text-ink-gray-7 transition-colors"
+						@click="lockedModalVisible = false"
+					>
+						<X class="h-5 w-5" />
+					</button>
+					<div class="lock-icon-wrapper flex items-center justify-center w-20 h-20 rounded-full bg-surface-gray-2">
+						<LockKeyhole class="h-9 w-9 text-ink-gray-5 stroke-1.5" />
+					</div>
+					<div>
+						<p class="text-xl font-semibold text-ink-gray-9 mb-1">
+							{{ __('This section is locked') }}
+						</p>
+						<p class="text-sm text-ink-gray-5 leading-relaxed">
+							{{ __('Get approval on the previous sections to unlock') }}
+						</p>
+					</div>
+				</div>
+			</div>
+		</Transition>
+	</Teleport>
 </template>
 <script setup>
 import { Button, createResource, Tooltip, toast } from 'frappe-ui'
@@ -206,7 +229,6 @@ import { getCurrentInstance, inject, ref, watch } from 'vue'
 import Draggable from 'vuedraggable'
 import { Disclosure, DisclosureButton, DisclosurePanel } from '@headlessui/vue'
 import {
-	CalendarDays,
 	Check,
 	ChevronRight,
 	FileText,
@@ -218,6 +240,7 @@ import {
 	Plus,
 	SquareCode,
 	Trash2,
+	X,
 } from 'lucide-vue-next'
 import { useRoute, useRouter } from 'vue-router'
 import ChapterModal from '@/components/Modals/ChapterModal.vue'
@@ -227,6 +250,8 @@ const router = useRouter()
 const user = inject('$user')
 const showChapterModal = ref(false)
 const currentChapter = ref(null)
+const lockedModalVisible = ref(false)
+const activeLockedChapter = ref(null)
 const app = getCurrentInstance()
 const { $dialog } = app.appContext.config.globalProperties
 
@@ -259,7 +284,7 @@ const props = defineProps({
 
 const outline = createResource({
 	url: 'lms.lms.utils.get_course_outline',
-	cache: ['course_outline', props.courseName],
+	cache: ['course_outline', props.courseName, user.data?.name || 'guest'],
 	makeParams() {
 		return {
 			course: props.courseName,
@@ -412,6 +437,11 @@ const trashChapter = (chapterName) => {
 	})
 }
 
+const showLockedModal = (chapter) => {
+	activeLockedChapter.value = chapter
+	lockedModalVisible.value = true
+}
+
 const redirectToChapter = (chapter) => {
 	if (!chapter.is_scorm_package) return
 	event.preventDefault()
@@ -441,3 +471,42 @@ const isActiveLesson = (lessonNumber) => {
 	)
 }
 </script>
+
+<style scoped>
+/* Backdrop + card enter/leave transitions */
+.locked-modal-enter-active,
+.locked-modal-leave-active {
+	transition: opacity 0.25s ease;
+}
+.locked-modal-enter-active .locked-modal-card,
+.locked-modal-leave-active .locked-modal-card {
+	transition: opacity 0.25s ease, transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.locked-modal-enter-from,
+.locked-modal-leave-to {
+	opacity: 0;
+}
+.locked-modal-enter-from .locked-modal-card {
+	opacity: 0;
+	transform: scale(0.85) translateY(12px);
+}
+.locked-modal-leave-to .locked-modal-card {
+	opacity: 0;
+	transform: scale(0.85) translateY(12px);
+}
+
+/* Lock icon bounce-in animation */
+.lock-icon-wrapper {
+	animation: lock-bounce 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.15s both;
+}
+@keyframes lock-bounce {
+	from {
+		opacity: 0;
+		transform: scale(0.5);
+	}
+	to {
+		opacity: 1;
+		transform: scale(1);
+	}
+}
+</style>

@@ -8,8 +8,15 @@ class LMSChapterEnrollment(Document):
 		self.granted_on = frappe.utils.today()
 
 	def validate(self):
-		if frappe.db.exists(
+		existing = frappe.db.get_value(
 			"LMS Chapter Enrollment",
-			{"member": self.member, "course": self.course, "chapter": self.chapter, "name": ("!=", self.name)},
-		):
-			frappe.throw(frappe._("{0} already has access to this chapter.").format(self.member))
+			{"member": self.member, "course": self.course, "name": ("!=", self.name)},
+			"name",
+		)
+		if existing:
+			frappe.throw(
+				frappe._(
+					"An enrollment record already exists for {0} in this course. "
+					"Please edit the existing record to add or remove chapters."
+				).format(self.member)
+			)

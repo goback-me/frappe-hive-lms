@@ -56,7 +56,7 @@
 					</Button>
 				</router-link>
 				<Badge
-					v-else-if="course.data.disable_self_learning && !isAdmin"
+					v-else-if="(course.data.disable_self_learning || course.data.requires_approval) && !isAdmin"
 					theme="blue"
 					size="lg"
 					class="mb-4"
