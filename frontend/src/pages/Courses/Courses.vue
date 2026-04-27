@@ -193,6 +193,7 @@ const updateCourses = () => {
 	updateFilters()
 	courses.update({
 		filters: filters.value,
+		start: 0,
 	})
 	courses.reload().then((data) => {
 		setCategories(data)
