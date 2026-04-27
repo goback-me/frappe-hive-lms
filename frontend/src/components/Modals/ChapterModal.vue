@@ -2,7 +2,7 @@
 	<Dialog
 		v-model="show"
 		:options="{
-			title: chapterDetail ? __('Edit Chapter') : __('Add Chapter'),
+			title: chapterDetail ? __('Edit Chapter') : (parentChapter ? __('Add Sub-section') : __('Add Chapter')),
 			size: 'lg',
 			actions: [
 				{
@@ -102,6 +102,10 @@ const props = defineProps({
 	chapterDetail: {
 		type: Object,
 	},
+	parentChapter: {
+		type: String,
+		default: null,
+	},
 })
 
 const chapter = reactive({
@@ -119,6 +123,7 @@ const chapterResource = createResource({
 			is_scorm_package: chapter.is_scorm_package,
 			scorm_package: chapter.scorm_package,
 			name: props.chapterDetail?.name,
+			parent_chapter: props.parentChapter || null,
 		}
 	},
 })

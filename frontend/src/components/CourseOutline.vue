@@ -95,87 +95,174 @@
 								/>
 							</div>
 							<DisclosurePanel v-if="!chapter.is_scorm_package && !chapter.is_locked">
-								<Draggable
-									v-if="!chapter.is_scorm_package"
-									:list="chapter.lessons"
-									:disabled="!allowEdit"
-									item-key="name"
-									group="items"
-									@end="updateOutline"
-									:data-chapter="chapter.name"
-								>
-									<template #item="{ element: lesson }">
-										<div
-											class="outline-lesson ps-8 py-2 pe-4 text-ink-gray-9"
-											:class="
-												isActiveLesson(lesson.number) ? 'bg-surface-gray-3' : ''
-											"
-										>
-											<router-link
-												:to="{
-													name: allowEdit ? 'LessonForm' : 'Lesson',
-													params: {
-														courseName: courseName,
-														chapterNumber: lesson.number.split('-')[0],
-														lessonNumber: lesson.number.split('-')[1],
-													},
-												}"
+								<!-- Direct lessons (for chapters with no sub-chapters) -->
+								<template v-if="!chapter.sub_chapters?.length">
+									<Draggable
+										:list="chapter.lessons"
+										:disabled="!allowEdit"
+										item-key="name"
+										group="items"
+										@end="updateOutline"
+										:data-chapter="chapter.name"
+									>
+										<template #item="{ element: lesson }">
+											<div
+												class="outline-lesson ps-8 py-2 pe-4 text-ink-gray-9"
+												:class="isActiveLesson(lesson.number) ? 'bg-surface-gray-3' : ''"
 											>
-												<div class="flex items-center text-sm leading-5 group">
-													<MonitorPlay
-														v-if="lesson.icon === 'icon-youtube'"
-														class="h-4 w-4 stroke-1 me-2"
+												<router-link
+													:to="{
+														name: allowEdit ? 'LessonForm' : 'Lesson',
+														params: {
+															courseName: courseName,
+															chapterNumber: lesson.number.split('-')[0],
+															lessonNumber: lesson.number.split('-')[1],
+														},
+													}"
+												>
+													<div class="flex items-center text-sm leading-5 group">
+														<MonitorPlay v-if="lesson.icon === 'icon-youtube'" class="h-4 w-4 stroke-1 me-2" />
+														<HelpCircle v-else-if="lesson.icon === 'icon-quiz'" class="h-4 w-4 stroke-1 me-2" />
+														<NotebookPen v-else-if="lesson.icon === 'icon-assignment'" class="h-4 w-4 stroke-1 me-2" />
+														<SquareCode v-else-if="lesson.icon === 'icon-code'" class="h-4 w-4 stroke-1 me-2" />
+														<FileText v-else-if="lesson.icon === 'icon-list'" class="h-4 w-4 text-ink-gray-9 stroke-1 me-2" />
+														{{ lesson.title }}
+														<Trash2
+															v-if="allowEdit"
+															@click.prevent="trashLesson(lesson.name, chapter.name)"
+															class="h-4 w-4 text-ink-red-3 ms-auto invisible group-hover:visible"
+														/>
+														<Check v-if="lesson.is_complete" class="h-4 w-4 text-green-700 ms-2" />
+													</div>
+												</router-link>
+											</div>
+										</template>
+									</Draggable>
+									<div v-if="allowEdit" class="flex flex-wrap gap-2 mt-2 mb-4 ps-8">
+										<router-link
+											:to="{
+												name: 'LessonForm',
+												params: {
+													courseName: courseName,
+													chapterNumber: chapter.idx,
+													lessonNumber: chapter.lessons.length + 1,
+												},
+											}"
+										>
+											<Button size="sm">{{ __('Add Lesson') }}</Button>
+										</router-link>
+										<Button size="sm" variant="subtle" @click.stop="openChapterModal(null, chapter.name)">
+											<template #prefix>
+												<Plus class="size-3.5 stroke-1.5" />
+											</template>
+											{{ __('Add Sub-section') }}
+										</Button>
+									</div>
+								</template>
+
+								<!-- Sub-chapters (nested accordion) -->
+								<template v-else>
+									<Disclosure
+										v-for="sub in chapter.sub_chapters"
+										:key="sub.name"
+										v-slot="{ open: subOpen }"
+										:defaultOpen="openChapterDetail(sub.idx)"
+									>
+										<div class="flex items-center w-full ps-6 py-1.5 group cursor-pointer">
+											<DisclosureButton as="div" class="flex items-center flex-1 min-w-0 cursor-pointer">
+												<ChevronRight
+													:class="{ 'rotate-90': subOpen, 'rtl:rotate-180': !subOpen }"
+													class="h-3.5 w-3.5 text-ink-gray-7 stroke-1 transform duration-200 shrink-0"
+												/>
+												<span class="text-sm font-medium text-ink-gray-8 ms-2 truncate">
+													{{ sub.title }}
+												</span>
+											</DisclosureButton>
+											<div class="flex ms-auto gap-x-3 items-center shrink-0 pe-2">
+												<Tooltip :text="__('Edit Sub-section')" placement="bottom">
+													<FilePenLine
+														v-if="allowEdit"
+														@click.stop="openChapterModal(sub)"
+														class="h-3.5 w-3.5 text-ink-gray-9 invisible group-hover:visible"
 													/>
-													<HelpCircle
-														v-else-if="lesson.icon === 'icon-quiz'"
-														class="h-4 w-4 stroke-1 me-2"
-													/>
-													<NotebookPen
-														v-else-if="lesson.icon === 'icon-assignment'"
-														class="h-4 w-4 stroke-1 me-2"
-													/>
-													<SquareCode
-														v-else-if="lesson.icon === 'icon-code'"
-														class="h-4 w-4 stroke-1 me-2"
-													/>
-													<FileText
-														v-else-if="lesson.icon === 'icon-list'"
-														class="h-4 w-4 text-ink-gray-9 stroke-1 me-2"
-													/>
-													{{ lesson.title }}
+												</Tooltip>
+												<Tooltip :text="__('Delete Sub-section')" placement="bottom">
 													<Trash2
 														v-if="allowEdit"
-														@click.prevent="
-															trashLesson(lesson.name, chapter.name)
-														"
-														class="h-4 w-4 text-ink-red-3 ms-auto invisible group-hover:visible"
+														@click.stop="trashChapter(sub.name)"
+														class="h-3.5 w-3.5 text-ink-red-3 invisible group-hover:visible"
 													/>
-													<Check
-														v-if="lesson.is_complete"
-														class="h-4 w-4 text-green-700 ms-2"
-													/>
-												</div>
-											</router-link>
+												</Tooltip>
+											</div>
 										</div>
-									</template>
-								</Draggable>
-								<div v-if="allowEdit" class="flex mt-2 mb-4 ps-8">
-									<router-link
-										v-if="!chapter.is_scorm_package"
-										:to="{
-											name: 'LessonForm',
-											params: {
-												courseName: courseName,
-												chapterNumber: chapter.idx,
-												lessonNumber: chapter.lessons.length + 1,
-											},
-										}"
-									>
-										<Button>
-											{{ __('Add Lesson') }}
+										<DisclosurePanel>
+											<Draggable
+												:list="sub.lessons"
+												:disabled="!allowEdit"
+												item-key="name"
+												group="items"
+												@end="updateOutline"
+												:data-chapter="sub.name"
+											>
+												<template #item="{ element: lesson }">
+													<div
+														class="outline-lesson ps-12 py-2 pe-4 text-ink-gray-9"
+														:class="isActiveLesson(lesson.number) ? 'bg-surface-gray-3' : ''"
+													>
+														<router-link
+															:to="{
+																name: allowEdit ? 'LessonForm' : 'Lesson',
+																params: {
+																	courseName: courseName,
+																	chapterNumber: lesson.number.split('-')[0],
+																	lessonNumber: lesson.number.split('-')[1],
+																},
+															}"
+														>
+															<div class="flex items-center text-sm leading-5 group">
+																<MonitorPlay v-if="lesson.icon === 'icon-youtube'" class="h-4 w-4 stroke-1 me-2" />
+																<HelpCircle v-else-if="lesson.icon === 'icon-quiz'" class="h-4 w-4 stroke-1 me-2" />
+																<NotebookPen v-else-if="lesson.icon === 'icon-assignment'" class="h-4 w-4 stroke-1 me-2" />
+																<SquareCode v-else-if="lesson.icon === 'icon-code'" class="h-4 w-4 stroke-1 me-2" />
+																<FileText v-else-if="lesson.icon === 'icon-list'" class="h-4 w-4 text-ink-gray-9 stroke-1 me-2" />
+																{{ lesson.title }}
+																<Trash2
+																	v-if="allowEdit"
+																	@click.prevent="trashLesson(lesson.name, sub.name)"
+																	class="h-4 w-4 text-ink-red-3 ms-auto invisible group-hover:visible"
+																/>
+																<Check v-if="lesson.is_complete" class="h-4 w-4 text-green-700 ms-2" />
+															</div>
+														</router-link>
+													</div>
+												</template>
+											</Draggable>
+											<div v-if="allowEdit" class="flex mt-2 mb-4 ps-12">
+												<router-link
+													:to="{
+														name: 'LessonForm',
+														params: {
+															courseName: courseName,
+															chapterNumber: sub.idx,
+															lessonNumber: sub.lessons.length + 1,
+														},
+													}"
+												>
+													<Button size="sm">{{ __('Add Lesson') }}</Button>
+												</router-link>
+											</div>
+										</DisclosurePanel>
+									</Disclosure>
+									<!-- Add another sub-section -->
+									<div v-if="allowEdit" class="flex mt-1 mb-3 ps-6">
+										<Button size="sm" variant="subtle" @click.stop="openChapterModal(null, chapter.name)">
+											<template #prefix>
+												<Plus class="size-3.5 stroke-1.5" />
+											</template>
+											{{ __('Add Sub-section') }}
 										</Button>
-									</router-link>
-								</div>
+									</div>
+								</template>
 							</DisclosurePanel>
 						</Disclosure>
 					</div>
@@ -189,6 +276,7 @@
 		v-model:outline="outline"
 		:course="courseName"
 		:chapterDetail="getCurrentChapter()"
+		:parentChapter="currentParentChapter"
 	/>
 
 	<!-- Locked Chapter Modal -->
@@ -250,6 +338,7 @@ const router = useRouter()
 const user = inject('$user')
 const showChapterModal = ref(false)
 const currentChapter = ref(null)
+const currentParentChapter = ref(null)
 const lockedModalVisible = ref(false)
 const activeLockedChapter = ref(null)
 const app = getCurrentInstance()
@@ -378,8 +467,9 @@ const openChapterDetail = (index) => {
 	return index == route.params.chapterNumber || index == 1
 }
 
-const openChapterModal = (chapter = null) => {
+const openChapterModal = (chapter = null, parentChapter = null) => {
 	currentChapter.value = chapter
+	currentParentChapter.value = parentChapter
 	showChapterModal.value = true
 }
 
