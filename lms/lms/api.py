@@ -2466,3 +2466,57 @@ def get_chapter_enrollments(course: str, chapter: str):
 		(course, chapter),
 		as_dict=True,
 	)
+
+
+@frappe.whitelist()
+def notify_user_created(user_email: str):
+	"""Fire the user creation webhook. URL is stored server-side only."""
+	import requests as req
+
+	webhook_url = frappe.db.get_single_value("LMS Settings", "user_creation_webhook_url")
+	if not webhook_url:
+		return
+
+	user = frappe.db.get_value(
+		"User",
+		user_email,
+		["name", "full_name", "first_name", "last_name", "email"],
+		as_dict=True,
+	)
+	if not user:
+		return
+
+	try:
+		req.post(webhook_url, json={
+			"event": "user_created",
+			"user": {
+				"email": user.email,
+				"full_name": user.full_name,
+				"first_name": user.first_name,
+				"last_name": user.last_name,
+			}
+		}, timeout=5)
+	except Exception:
+		pass
+
+
+@frappe.whitelist()
+def get_courses_for_access():
+	"""Return published courses for the access selector in Add Member modal."""
+	return frappe.get_list(
+		"LMS Course",
+		filters={"published": 1},
+		fields=["name", "title"],
+		order_by="title asc",
+	)
+
+
+@frappe.whitelist()
+def get_chapters_for_course(course: str):
+	"""Return chapters for a given course."""
+	return frappe.get_list(
+		"Course Chapter",
+		filters={"course": course},
+		fields=["name", "title", "idx"],
+		order_by="idx asc",
+	)

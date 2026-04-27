@@ -85,6 +85,17 @@
  ],
  "fields": [
   {
+   "fieldname": "webhooks_section",
+   "fieldtype": "Section Break",
+   "label": "Webhooks"
+  },
+  {
+   "fieldname": "user_creation_webhook_url",
+   "fieldtype": "Data",
+   "label": "User Creation Webhook URL",
+   "description": "POST webhook fired when a new member is added. URL is never exposed to frontend."
+  },
+  {
    "default": "https://falcon.frappe.io",
    "fieldname": "livecode_url",
    "fieldtype": "Data",

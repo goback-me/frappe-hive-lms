@@ -67,6 +67,40 @@
 						/>
 					</div>
 				</div>
+
+				<!-- Course Access -->
+				<div class="border-t pt-4 flex flex-col gap-3">
+					<div class="text-sm text-ink-gray-5">
+						{{ __('Course Access (optional)') }}
+					</div>
+					<FormControl
+						v-model="selectedCourse"
+						:label="__('Course')"
+						type="select"
+						:options="courseOptions"
+						@change="onCourseChange"
+					/>
+					<div v-if="selectedCourse && chapters.length" class="flex flex-col gap-2">
+						<div class="text-sm text-ink-gray-5">
+							{{ __('Chapters (leave all unchecked for full course access)') }}
+						</div>
+						<div class="grid md:grid-cols-2 gap-x-6 gap-y-2 max-h-48 overflow-y-auto">
+							<label
+								v-for="ch in chapters"
+								:key="ch.name"
+								class="flex items-center gap-2 cursor-pointer text-sm text-ink-gray-9"
+							>
+								<input
+									type="checkbox"
+									:value="ch.name"
+									v-model="selectedChapters"
+									class="rounded"
+								/>
+								{{ ch.title }}
+							</label>
+						</div>
+					</div>
+				</div>
 			</div>
 		</template>
 	</Dialog>
@@ -74,11 +108,15 @@
 
 <script setup lang="ts">
 import { call, Dialog, FormControl, toast, Switch } from 'frappe-ui'
-import { reactive, ref, watch } from 'vue'
+import { reactive, ref, watch, computed } from 'vue'
 import { cleanError } from '@/utils'
 
 const show = defineModel<boolean>({ default: false })
 const submitting = ref(false)
+const selectedCourse = ref('')
+const selectedChapters = ref<string[]>([])
+const chapters = ref<{ name: string; title: string }[]>([])
+const courseList = ref<{ name: string; title: string }[]>([])
 
 const props = defineProps<{
 	defaultRoles?: string[]
@@ -108,10 +146,39 @@ const roles = reactive({
 	lms_student: false,
 })
 
+const courseOptions = computed(() => [
+	{ label: __('None'), value: '' },
+	...courseList.value.map((c) => ({ label: c.title, value: c.name })),
+])
+
+const loadCourses = async () => {
+	try {
+		courseList.value = await call('lms.lms.api.get_courses_for_access')
+	} catch {
+		courseList.value = []
+	}
+}
+
+const onCourseChange = async () => {
+	selectedChapters.value = []
+	chapters.value = []
+	if (!selectedCourse.value) return
+	try {
+		chapters.value = await call('lms.lms.api.get_chapters_for_course', {
+			course: selectedCourse.value,
+		})
+	} catch {
+		chapters.value = []
+	}
+}
+
 const resetForm = () => {
 	member.email = ''
 	member.first_name = ''
 	member.last_name = ''
+	selectedCourse.value = ''
+	selectedChapters.value = []
+	chapters.value = []
 	applyDefaultRoles()
 }
 
@@ -126,17 +193,37 @@ const applyDefaultRoles = () => {
 watch(show, (isOpen) => {
 	if (isOpen) {
 		resetForm()
+		loadCourses()
 	}
 })
 
 const assignRoles = async (userEmail: string) => {
 	const selectedRoles = Object.entries(roles).filter(([_, checked]) => checked)
-
 	for (const [key, _] of selectedRoles) {
 		await call('lms.lms.api.save_role', {
 			user: userEmail,
 			role: ROLE_MAP[key],
 			value: 1,
+		})
+	}
+}
+
+const grantCourseAccess = async (userEmail: string) => {
+	if (!selectedCourse.value) return
+
+	if (selectedChapters.value.length > 0) {
+		await call('lms.lms.api.grant_chapter_access', {
+			member: userEmail,
+			course: selectedCourse.value,
+			chapters: selectedChapters.value,
+		})
+	} else {
+		await call('frappe.client.insert', {
+			doc: {
+				doctype: 'LMS Enrollment',
+				course: selectedCourse.value,
+				member: userEmail,
+			},
 		})
 	}
 }
@@ -159,6 +246,10 @@ const addMember = async (close?: () => void) => {
 		})
 
 		await assignRoles(user.name)
+		await grantCourseAccess(user.name)
+
+		// Fire webhook server-side (URL never exposed to frontend)
+		call('lms.lms.api.notify_user_created', { user_email: user.name }).catch(() => {})
 
 		toast.success(__('Member added successfully'))
 		emit('created', user)

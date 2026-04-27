@@ -484,6 +484,9 @@ const getSidebarItems = (forMobile = false) => {
 					icon: 'Users',
 					to: 'Batches',
 					activeFor: ['Batches', 'BatchDetail', 'Batch', 'BatchForm'],
+					condition: () => {
+						return isAdmin()
+					},
 				},
 				{
 					label: 'Certifications',
@@ -491,7 +494,7 @@ const getSidebarItems = (forMobile = false) => {
 					to: 'CertifiedParticipants',
 					activeFor: ['CertifiedParticipants'],
 					condition: () => {
-						return userResource?.data
+						return isAdmin()
 					},
 				},
 				{
@@ -499,12 +502,18 @@ const getSidebarItems = (forMobile = false) => {
 					icon: 'Briefcase',
 					to: 'Jobs',
 					activeFor: ['Jobs', 'JobDetail'],
+					condition: () => {
+						return isAdmin()
+					},
 				},
 				{
 					label: 'Statistics',
 					icon: 'TrendingUp',
 					to: 'Statistics',
 					activeFor: ['Statistics'],
+					condition: () => {
+						return isAdmin()
+					},
 				},
 				{
 					label: 'Contact Us',
